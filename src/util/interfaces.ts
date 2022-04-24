@@ -3,15 +3,18 @@ export interface Month {
   value: number,
 }
 
-export interface TableHeaderWeeklyGoal {
-  title: string,
-}
-
-export interface TableColumnWeeklyGoal {
-  name: string,
-  value: number,
+interface TableColumn {
+  alias: string,
   dateFrom: string,
   dateEnd: string,
+}
+
+export interface TableHeaderWeeklyGoal extends TableColumn {
+
+}
+
+export interface TableColumnWeeklyGoal extends TableColumn {
+  value: number,
 }
 
 export interface TableRow {
@@ -23,11 +26,18 @@ export interface TableRow {
   weeklyGoals: Array<TableColumnWeeklyGoal>
 }
 
+export interface TableFooter {
+  goalOne: number,
+  goalTwo: number,
+  weeklyGoals: Array<TableColumnWeeklyGoal>
+}
+
 //  Structure that coming from APIs
 export interface WeeklyGoal {
   desde: string,
   hasta: string,
   meta: number,
+
   [key: string]: any
 }
 

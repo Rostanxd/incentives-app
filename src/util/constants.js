@@ -13,4 +13,6 @@ const MONTHS = [
   {value: 12, name: "Diciembre"},
 ];
 
-export {MONTHS};
+const DATE_STRING_FORMAT = "YYYY/MM/DD";
+
+export {MONTHS, DATE_STRING_FORMAT};

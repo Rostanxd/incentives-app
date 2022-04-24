@@ -25,7 +25,7 @@ const Filters = (props: FiltersProps) => {
       year: props.initialYear,
       month: props.initialMonth,
     })
-  }, [])
+  }, []);
 
   const handleOnClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();

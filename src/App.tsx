@@ -5,15 +5,17 @@ import ActionsBox from "./components/ActionsBox";
 import Table from "./components/Table";
 import IncentivesAPI from "./services/IncentivesAPI";
 import {MONTHS} from "./util/constants";
-import {StoreData, TableHeaderWeeklyGoal, TableRow} from "./util/interfaces";
+import {StoreData, TableFooter, TableHeaderWeeklyGoal, TableRow} from "./util/interfaces";
 
 import 'bulma/css/bulma.css';
+import {dateStringToAlias} from "./util/functions";
 
 interface AppState {
   year: number,
   month: number,
   tableHeadersWeeklyGoals: Array<TableHeaderWeeklyGoal>,
   tableRows: Array<TableRow>,
+  tableFooter: TableFooter,
   storeData: Array<StoreData>,
   isLoadingSearch: boolean,
   isLoadingSubmit: boolean,
@@ -25,6 +27,11 @@ const APP_INITIAL_STATE: AppState = {
   month: moment().month() + 1,
   tableHeadersWeeklyGoals: [],
   tableRows: [],
+  tableFooter: {
+    goalOne: 0,
+    goalTwo: 0,
+    weeklyGoals: []
+  },
   storeData: [],
   isLoadingSearch: false,
   isLoadingSubmit: false,
@@ -58,7 +65,12 @@ function App() {
             if (response.status === 200) {
               const data: Array<StoreData> = response.data;
               const tableRows = [];
-              const rangesDates = [];
+              const tableFooter: TableFooter = {
+                goalOne: 0,
+                goalTwo: 0,
+                weeklyGoals: [],
+              };
+              const rangesDates: Array<TableHeaderWeeklyGoal> = [];
 
               for (let i = 0; i < data.length; i++) {
                 const storeData = data[i];
@@ -67,14 +79,23 @@ function App() {
                 //  Logic to get the ranges of dates
                 for (let x = 0; x < weeklyGoals.length; x++) {
                   const weeklyGoal = weeklyGoals[x];
-                  const dateFrom = moment(weeklyGoal.desde, "YYYY/MM/DD");
-                  const endFrom = moment(weeklyGoal.hasta, "YYYY/MM/DD");
-                  const rangeDate = `${dateFrom.format('DD')} - ${endFrom.format('DD')}`;
+                  const rangeDate = `${dateStringToAlias(weeklyGoal.desde)} - ${dateStringToAlias(weeklyGoal.hasta)}`;
                   weeklyGoal[rangeDate] = weeklyGoal.meta;
-
-                  if (rangesDates.length === 0 || rangesDates.filter((range) => range.title === rangeDate).length === 0) {
+                  if (
+                    rangesDates.length === 0 ||
+                    rangesDates.filter((range) => range.alias === rangeDate).length === 0
+                  ) {
                     rangesDates.push({
-                      title: rangeDate,
+                      dateFrom: weeklyGoal.desde,
+                      dateEnd: weeklyGoal.hasta,
+                      alias: rangeDate,
+                    });
+
+                    tableFooter.weeklyGoals.push({
+                      dateFrom: weeklyGoal.desde,
+                      dateEnd: weeklyGoal.hasta,
+                      alias: rangeDate,
+                      value: 0
                     });
                   }
                 }
@@ -82,9 +103,9 @@ function App() {
 
               //  Sorting
               rangesDates.sort((a, b) => {
-                if (a.title > b.title) {
+                if (a.alias > b.alias) {
                   return 1;
-                } else if (a.title < b.title) {
+                } else if (a.alias < b.alias) {
                   return -1;
                 } else {
                   return 0;
@@ -94,6 +115,8 @@ function App() {
               for (let i = 0; i < data.length; i++) {
                 const storeData = data[i];
                 const weeklyGoals = storeData.metas_semanales;
+                tableFooter.goalOne += storeData.meta_uno;
+                tableFooter.goalTwo += storeData.meta_dos;
 
                 //  Adding data for the table
                 tableRows.push({
@@ -103,27 +126,36 @@ function App() {
                   goalTwo: storeData.meta_dos,
                   status: storeData.estado,
                   weeklyGoals: rangesDates.map((range) => {
-                    const filter = weeklyGoals.filter((weeklyGoal) => !!weeklyGoal[range.title])?.[0];
+                    const filter = weeklyGoals.filter((weeklyGoal) => !!weeklyGoal[range.alias])?.[0];
                     return !!filter ?
                       {
-                        name: range.title,
+                        alias: range.alias,
                         value: filter.meta,
                         dateFrom: filter.desde,
                         dateEnd: filter.hasta,
                       } : {
-                        name: range.title,
+                        alias: range.alias,
                         value: 0,
                         dateFrom: "",
                         dateEnd: "",
                       };
                   })
                 });
+
+                // Footers
+                if (tableFooter.weeklyGoals.length > 0) {
+                  for (let i = 0; i < tableFooter.weeklyGoals.length; i++) {
+                    const footer = tableFooter.weeklyGoals[i];
+                    footer.value += weeklyGoals.filter((goal) => !!goal[footer.alias])?.[0].meta ?? 0;
+                  }
+                }
               }
 
               setState({
                 ...state,
                 tableHeadersWeeklyGoals: rangesDates,
                 tableRows: tableRows,
+                tableFooter: tableFooter,
                 storeData: data,
                 isLoadingSearch: false,
                 errorMessage: "",
@@ -169,7 +201,7 @@ function App() {
               });
             }
           });
-      }, 3000);
+      }, 1000);
     } else {
       setState({
         ...state,
@@ -220,46 +252,172 @@ function App() {
     })
   }
 
-  const handleChangeGoals = (goal: string, storeId: string, value: number) => {
-    const storesData: Array<TableRow> = state.tableRows;
-    for (let i = 0; i < storesData.length; i++) {
-      const storeData = storesData[i];
-      if (storeData.storeId === storeId) {
-        storeData[`${goal === "one" ? 'goalOne' : 'goalTwo'}`] = value;
+  const handleChangeWeekDates = (alias: string, dateType: string, newDate: string) => {
+    const tableHeadersWeeklyGoals = [...state.tableHeadersWeeklyGoals];
+    const tableRows = [...state.tableRows];
+    const tableFooter = {...state.tableFooter};
+    const tableHeaderWeeklyGoal = tableHeadersWeeklyGoals
+      .filter((goal) => goal.alias === alias)?.[0];
+    const tableFooterWeeklyGoal = tableFooter.weeklyGoals
+      .filter((goal) => goal.alias === alias)?.[0];
+
+    if (!!tableHeaderWeeklyGoal && !!tableFooterWeeklyGoal) {
+      // Updating headers
+      if (dateType === 'from') {
+        tableHeaderWeeklyGoal.dateFrom = newDate;
+        tableFooterWeeklyGoal.dateFrom = newDate;
+      } else {
+        tableHeaderWeeklyGoal.dateEnd = newDate;
+        tableFooterWeeklyGoal.dateEnd = newDate;
+      }
+
+      // Alias
+      const newAlias = `${dateStringToAlias(tableHeaderWeeklyGoal.dateFrom)} - ${dateStringToAlias(tableHeaderWeeklyGoal.dateEnd)}`;
+      tableHeaderWeeklyGoal.alias = newAlias;
+      tableFooterWeeklyGoal.alias = newAlias;
+      // Updating rows
+      for (let i = 0; i < tableRows.length; i++) {
+        const row = tableRows[i];
+        for (let x = 0; x < row.weeklyGoals.length; x++) {
+          const goal = row.weeklyGoals[x];
+          if (goal.alias === alias) {
+            goal.alias = newAlias;
+            break;
+          }
+        }
+      }
+    }
+
+    setState({
+      ...state,
+      tableHeadersWeeklyGoals: tableHeadersWeeklyGoals,
+      tableRows: tableRows,
+    })
+  }
+
+  const handleChangeGoals = (goal: 'one' | 'two', storeId: string, value: number) => {
+    const tableRows: Array<TableRow> = state.tableRows;
+    let sumGoalOne = 0;
+    let sumGoalTwo = 0;
+
+    for (let i = 0; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      if (row.storeId === storeId) {
+        row[`${goal === "one" ? 'goalOne' : 'goalTwo'}`] = value;
+      }
+
+      sumGoalOne += row.goalOne;
+      sumGoalTwo += row.goalTwo;
+    }
+
+    setState({
+      ...state,
+      tableRows: tableRows,
+      tableFooter: {
+        ...state.tableFooter,
+        goalOne: sumGoalOne,
+        goalTwo: sumGoalTwo,
+      }
+    });
+  }
+
+  const handleChangeWeeklyGoals = (alias: string, storeId: string, value: number) => {
+    const tableRows: Array<TableRow> = state.tableRows;
+    const tableFooter: TableFooter = {...state.tableFooter};
+    let aliasTotal = 0;
+
+    for (let i = 0; i < tableRows.length; i++) {
+      const row = tableRows[i];
+
+      for (let x = 0; x < row.weeklyGoals.length; x++) {
+        const weeklyGoal = row.weeklyGoals[x];
+        if (row.storeId === storeId && weeklyGoal.alias === alias) {
+          weeklyGoal.value = value;
+        }
+
+        if (weeklyGoal.alias === alias) {
+          aliasTotal += weeklyGoal.value;
+        }
+      }
+    }
+
+    for (let i = 0; i < tableFooter.weeklyGoals.length; i++) {
+      const goal = tableFooter.weeklyGoals[i];
+      if (goal.alias === alias) {
+        goal.value = aliasTotal;
         break;
       }
     }
 
     setState({
       ...state,
-      tableRows: storesData,
-    });
+      tableRows: tableRows,
+      tableFooter: tableFooter
+    })
   }
 
-  const handleChangeWeeklyGoals = (range: string, storeId: string, value: number) => {
-    const storesData: Array<TableRow> = state.tableRows;
-    for (let i = 0; i < storesData.length; i++) {
-      const storeData = storesData[i];
-      let updated = false;
+  const handleNewWeekDates = () => {
+    let tableHeadersWeeklyGoals = [...state.tableHeadersWeeklyGoals];
+    let tableRows = [...state.tableRows];
+    let tableFooter = {...state.tableFooter};
 
-      if (storeData.storeId === storeId) {
-        for (let x = 0; x < storeData.weeklyGoals.length; x++) {
-          const weeklyGoal = storeData.weeklyGoals[x];
-          if (weeklyGoal.name === range) {
-            weeklyGoal.value = value;
-            updated = true;
-            break;
-          }
-        }
-        if (updated) {
-          break;
-        }
-      }
+    const newAlias = tableHeadersWeeklyGoals.length;
+
+    // Adding new dates to header
+    tableHeadersWeeklyGoals.push({
+      alias: `${newAlias}`,
+      dateFrom: "",
+      dateEnd: ""
+    });
+
+    // Adding new dates to rows
+    for (let i = 0; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      row.weeklyGoals.push({
+        alias: `${newAlias}`,
+        dateFrom: "",
+        dateEnd: "",
+        value: 0,
+      });
     }
+
+    // Adding new dates to footer
+    tableFooter.weeklyGoals.push({
+      alias: `${newAlias}`,
+      dateFrom: "",
+      dateEnd: "",
+      value: 0,
+    });
 
     setState({
       ...state,
-      tableRows: storesData,
+      tableHeadersWeeklyGoals: tableHeadersWeeklyGoals,
+      tableRows: tableRows,
+    })
+  }
+
+  const handleDeleteWeekDates = (alias: string) => {
+    let tableHeadersWeeklyGoals = [...state.tableHeadersWeeklyGoals];
+    let tableRows = [...state.tableRows];
+    let tableFooter = {...state.tableFooter};
+
+    // Filtering headers
+    tableHeadersWeeklyGoals = tableHeadersWeeklyGoals.filter((header) => header.alias !== alias);
+
+    // Filtering rows
+    for (let i = 0; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      row.weeklyGoals = row.weeklyGoals.filter((goal) => goal.alias !== alias);
+    }
+
+    // Filtering footer
+    tableFooter.weeklyGoals = tableFooter.weeklyGoals.filter((goal) => goal.alias !== alias);
+
+    setState({
+      ...state,
+      tableHeadersWeeklyGoals: tableHeadersWeeklyGoals,
+      tableRows: tableRows,
+      tableFooter: tableFooter
     })
   }
 
@@ -284,8 +442,12 @@ function App() {
         <Table
           rangeDates={state.tableHeadersWeeklyGoals}
           rows={state.tableRows}
+          footer={state.tableFooter}
+          handleChangeWeekDates={handleChangeWeekDates}
           handleChangeGoal={handleChangeGoals}
           handleChangeWeeklyGoals={handleChangeWeeklyGoals}
+          handleNewWeekDates={handleNewWeekDates}
+          handleDeleteWeekDates={handleDeleteWeekDates}
         />
       }
     </div>
