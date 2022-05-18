@@ -7,6 +7,9 @@ import {TableFooter, TableHeaderWeeklyGoal, TableRow} from "../../util/interface
 
 import "react-datepicker/dist/react-datepicker.css";
 
+import './styles.css'
+import styles from './styles.module.css';
+
 type TableProps = {
   rangeDates: Array<TableHeaderWeeklyGoal>,
   rows: Array<TableRow>,
@@ -36,99 +39,105 @@ const Table = (props: TableProps) => {
     props.handleNewWeekDates();
   }
 
-  const handleOnDeleteColumn = (alias:string, event: any) => {
+  const handleOnDeleteColumn = (alias: string, event: any) => {
     event.preventDefault();
     props.handleDeleteWeekDates(alias);
   }
 
   return (
-    <table className="table">
-      <thead>
-      <tr>
-        <th><abbr title="Local">Local</abbr></th>
-        <th><abbr title="Estado">Estado</abbr></th>
-        <th><abbr title="Meta #1">Meta #1</abbr></th>
-        <th><abbr title="Meta #2">Meta #2</abbr></th>
+    <div className={styles.wrapper}>
+      <table className="table is-hoverable">
+        <thead>
+        <tr>
+          <th className={styles.tableColFrozen}>
+            <abbr title="Local">Local</abbr>
+          </th>
+          {/*<th><abbr title="Estado">Estado</abbr></th>*/}
+          <th><abbr title="Meta #1">Meta #1</abbr></th>
+          <th><abbr title="Meta #2">Meta #2</abbr></th>
+          {
+            props.rangeDates.map((range, index) => {
+              return (
+                <th key={index}>
+                  {/*<p>{range.alias}</p>*/}
+                  <DatePicker
+                    selected={!!range.dateFrom ? moment(range.dateFrom, DATE_STRING_FORMAT).toDate() : null}
+                    onChange={(date: Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'from', date)}
+                    className={'calendar-input'}
+                  />
+                  <br/>
+                  <DatePicker
+                    selected={!!range.dateEnd ? moment(range.dateEnd, DATE_STRING_FORMAT).toDate() : null}
+                    onChange={(date: Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'end', date)}
+                    className={'calendar-input'}
+                  />
+                  <br/>
+                  <a onClick={(event) => handleOnDeleteColumn(range.alias, event)}>Elminar -</a>
+                </th>
+              );
+            })
+          }
+          <th><a onClick={handleNewColumn}>Agregar +</a></th>
+        </tr>
+        </thead>
+        <tfoot>
+        <tr>
+          <th className={styles.tableColFrozen}>Totales</th>
+          {/*<th>-</th>*/}
+          <th>{props.footer.goalOne}</th>
+          <th>{props.footer.goalTwo}</th>
+          {
+            props.footer.weeklyGoals.map((goal) => {
+              return <th key={goal.alias}>
+                {goal.value}
+                {/*<p>{goal.alias}</p>*/}
+              </th>;
+            })
+          }
+        </tr>
+        </tfoot>
+        <tbody>
         {
-          props.rangeDates.map((range, index) => {
+          props.rows.map((row) => {
             return (
-              <th key={index}>
-                {/*<p>{range.alias}</p>*/}
-                <DatePicker
-                  selected={!!range.dateFrom ? moment(range.dateFrom, DATE_STRING_FORMAT).toDate() : null}
-                  onChange={(date:Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'from', date)}
-                />
-                <br/>
-                <DatePicker
-                  selected={!!range.dateEnd ? moment(range.dateEnd, DATE_STRING_FORMAT).toDate() : null}
-                  onChange={(date:Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'end', date)}
-                />
-                <br/>
-                <a onClick={(event) => handleOnDeleteColumn(range.alias, event)}>Elminar -</a>
-              </th>
+              <tr key={`store-row-${row.storeId}`}>
+                <th className={styles.tableColFrozen}>{row.storeName}</th>
+                {/*<td>{row.status}</td>*/}
+                <td>
+                  <input
+                    type="text"
+                    value={row.goalOne}
+                    onChange={(event) => handleOnChangeGoal("one", row.storeId, event)}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={row.goalTwo}
+                    onChange={(event) => handleOnChangeGoal("two", row.storeId, event)}
+                  />
+                </td>
+                {
+                  row.weeklyGoals.map((weeklyGoal, index) => {
+                    return (
+                      <td key={`range-date-${index}`}>
+                        <input
+                          type="text"
+                          value={weeklyGoal.value}
+                          onChange={(event) => handleOnChangeWeeklyGoal(weeklyGoal.alias, row.storeId, event)}
+                        />
+                        {/*<p>{weeklyGoal.alias}</p>*/}
+                      </td>
+                    );
+                  })
+                }
+              </tr>
             );
           })
         }
-        <th><a onClick={handleNewColumn}>Agregar +</a></th>
-      </tr>
-      </thead>
-      <tfoot>
-      <tr>
-        <th>Totales</th>
-        <th>-</th>
-        <th>{props.footer.goalOne}</th>
-        <th>{props.footer.goalTwo}</th>
-        {
-          props.footer.weeklyGoals.map((goal) => {
-            return <th key={goal.alias}>
-              {goal.value}
-              {/*<p>{goal.alias}</p>*/}
-            </th>;
-          })
-        }
-      </tr>
-      </tfoot>
-      <tbody>
-      {
-        props.rows.map((row) => {
-          return (
-            <tr key={`store-row-${row.storeId}`}>
-              <th>{row.storeName}</th>
-              <td>{row.status}</td>
-              <td>
-                <input
-                  type="text"
-                  value={row.goalOne}
-                  onChange={(event) => handleOnChangeGoal("one", row.storeId, event)}
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={row.goalTwo}
-                  onChange={(event) => handleOnChangeGoal("two", row.storeId, event)}
-                />
-              </td>
-              {
-                row.weeklyGoals.map((weeklyGoal, index) => {
-                  return (
-                    <td key={`range-date-${index}`}>
-                      <input
-                        type="text"
-                        value={weeklyGoal.value}
-                        onChange={(event) => handleOnChangeWeeklyGoal(weeklyGoal.alias, row.storeId, event)}
-                      />
-                      {/*<p>{weeklyGoal.alias}</p>*/}
-                    </td>
-                  );
-                })
-              }
-            </tr>
-          );
-        })
-      }
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   );
 }
 

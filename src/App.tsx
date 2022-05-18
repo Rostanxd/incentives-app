@@ -5,7 +5,7 @@ import ActionsBox from "./components/ActionsBox";
 import Table from "./components/Table";
 import IncentivesAPI from "./services/IncentivesAPI";
 import {MONTHS} from "./util/constants";
-import {StoreData, TableFooter, TableHeaderWeeklyGoal, TableRow} from "./util/interfaces";
+import {LibretasMetasData, SdtLibretaMetasLocal, TableFooter, TableHeaderWeeklyGoal, TableRow} from "./util/interfaces";
 
 import 'bulma/css/bulma.css';
 import {dateStringToAlias} from "./util/functions";
@@ -16,7 +16,7 @@ interface AppState {
   tableHeadersWeeklyGoals: Array<TableHeaderWeeklyGoal>,
   tableRows: Array<TableRow>,
   tableFooter: TableFooter,
-  storeData: Array<StoreData>,
+  storesData: Array<SdtLibretaMetasLocal>,
   isLoadingSearch: boolean,
   isLoadingSubmit: boolean,
   errorMessage: string,
@@ -32,7 +32,7 @@ const APP_INITIAL_STATE: AppState = {
     goalTwo: 0,
     weeklyGoals: []
   },
-  storeData: [],
+  storesData: [],
   isLoadingSearch: false,
   isLoadingSubmit: false,
   errorMessage: "",
@@ -57,151 +57,152 @@ function App() {
         ...state,
         isLoadingSearch: true,
         errorMessage: "",
-      })
+      });
 
-      setTimeout(() => {
-        IncentivesAPI.getIncentives(year, month)
-          .then((response) => {
-            if (response.status === 200) {
-              const data: Array<StoreData> = response.data;
-              const tableRows = [];
-              const tableFooter: TableFooter = {
-                goalOne: 0,
-                goalTwo: 0,
-                weeklyGoals: [],
-              };
-              const rangesDates: Array<TableHeaderWeeklyGoal> = [];
+      IncentivesAPI.getIncentives(year, month)
+        .then((response) => {
+          if (response.status === 200) {
+            const data: LibretasMetasData = response.data;
+            const incentives = data.SdtLibretaMetas;
+            const storesData = incentives.locales;
 
-              for (let i = 0; i < data.length; i++) {
-                const storeData = data[i];
-                const weeklyGoals = storeData.metas_semanales;
+            const tableRows = [];
+            const tableFooter: TableFooter = {
+              goalOne: 0,
+              goalTwo: 0,
+              weeklyGoals: [],
+            };
+            const rangesDates: Array<TableHeaderWeeklyGoal> = [];
 
-                //  Logic to get the ranges of dates
-                for (let x = 0; x < weeklyGoals.length; x++) {
-                  const weeklyGoal = weeklyGoals[x];
-                  const rangeDate = `${dateStringToAlias(weeklyGoal.desde)} - ${dateStringToAlias(weeklyGoal.hasta)}`;
-                  weeklyGoal[rangeDate] = weeklyGoal.meta;
-                  if (
-                    rangesDates.length === 0 ||
-                    rangesDates.filter((range) => range.alias === rangeDate).length === 0
-                  ) {
-                    rangesDates.push({
-                      dateFrom: weeklyGoal.desde,
-                      dateEnd: weeklyGoal.hasta,
-                      alias: rangeDate,
-                    });
+            for (let i = 0; i < storesData.length; i++) {
+              const storeData = storesData[i];
+              const weeklyGoals = storeData.semanas;
 
-                    tableFooter.weeklyGoals.push({
-                      dateFrom: weeklyGoal.desde,
-                      dateEnd: weeklyGoal.hasta,
-                      alias: rangeDate,
-                      value: 0
-                    });
-                  }
+              //  Logic to get the ranges of dates
+              for (let x = 0; x < weeklyGoals.length; x++) {
+                const weeklyGoal = weeklyGoals[x];
+                const rangeDate = `${dateStringToAlias(weeklyGoal.fecha_desde)} - ${dateStringToAlias(weeklyGoal.fecha_hasta)}`;
+                weeklyGoal[rangeDate] = weeklyGoal.meta;
+                if (
+                  rangesDates.length === 0 ||
+                  rangesDates.filter((range) => range.alias === rangeDate).length === 0
+                ) {
+                  rangesDates.push({
+                    dateFrom: weeklyGoal.fecha_desde,
+                    dateEnd: weeklyGoal.fecha_hasta,
+                    alias: rangeDate,
+                  });
+
+                  tableFooter.weeklyGoals.push({
+                    dateFrom: weeklyGoal.fecha_desde,
+                    dateEnd: weeklyGoal.fecha_hasta,
+                    alias: rangeDate,
+                    value: 0
+                  });
                 }
               }
+            }
 
-              //  Sorting
-              rangesDates.sort((a, b) => {
-                if (a.alias > b.alias) {
-                  return 1;
-                } else if (a.alias < b.alias) {
-                  return -1;
-                } else {
-                  return 0;
-                }
+            //  Sorting
+            rangesDates.sort((a, b) => {
+              if (a.alias > b.alias) {
+                return 1;
+              } else if (a.alias < b.alias) {
+                return -1;
+              } else {
+                return 0;
+              }
+            });
+
+            for (let i = 0; i < storesData.length; i++) {
+              const storeData = storesData[i];
+              const weeklyGoals = storeData.semanas;
+              tableFooter.goalOne += storeData.meta_mensual_uno;
+              tableFooter.goalTwo += storeData.meta_mensual_dos;
+
+              //  Adding data for the table
+              tableRows.push({
+                storeId: storeData.local_id,
+                storeName: storeData.local_nombre,
+                goalOne: storeData.meta_mensual_uno,
+                goalTwo: storeData.meta_mensual_dos,
+                status: storeData.estado,
+                weeklyGoals: rangesDates.map((range) => {
+                  const filter = weeklyGoals.filter((weeklyGoal) => !!weeklyGoal[range.alias])?.[0];
+                  return !!filter ?
+                    {
+                      alias: range.alias,
+                      value: filter.meta,
+                      dateFrom: filter.fecha_desde,
+                      dateEnd: filter.fecha_hasta,
+                    } : {
+                      alias: range.alias,
+                      value: 0,
+                      dateFrom: "",
+                      dateEnd: "",
+                    };
+                })
               });
 
-              for (let i = 0; i < data.length; i++) {
-                const storeData = data[i];
-                const weeklyGoals = storeData.metas_semanales;
-                tableFooter.goalOne += storeData.meta_uno;
-                tableFooter.goalTwo += storeData.meta_dos;
-
-                //  Adding data for the table
-                tableRows.push({
-                  storeId: storeData.localId,
-                  storeName: storeData.local,
-                  goalOne: storeData.meta_uno,
-                  goalTwo: storeData.meta_dos,
-                  status: storeData.estado,
-                  weeklyGoals: rangesDates.map((range) => {
-                    const filter = weeklyGoals.filter((weeklyGoal) => !!weeklyGoal[range.alias])?.[0];
-                    return !!filter ?
-                      {
-                        alias: range.alias,
-                        value: filter.meta,
-                        dateFrom: filter.desde,
-                        dateEnd: filter.hasta,
-                      } : {
-                        alias: range.alias,
-                        value: 0,
-                        dateFrom: "",
-                        dateEnd: "",
-                      };
-                  })
-                });
-
-                // Footers
-                if (tableFooter.weeklyGoals.length > 0) {
-                  for (let i = 0; i < tableFooter.weeklyGoals.length; i++) {
-                    const footer = tableFooter.weeklyGoals[i];
-                    footer.value += weeklyGoals.filter((goal) => !!goal[footer.alias])?.[0].meta ?? 0;
-                  }
+              // Footers
+              if (tableFooter.weeklyGoals.length > 0) {
+                for (let i = 0; i < tableFooter.weeklyGoals.length; i++) {
+                  const footer = tableFooter.weeklyGoals[i];
+                  footer.value += weeklyGoals.filter((goal) => !!goal[footer.alias])?.[0]?.meta ?? 0;
                 }
               }
+            }
 
-              setState({
-                ...state,
-                tableHeadersWeeklyGoals: rangesDates,
-                tableRows: tableRows,
-                tableFooter: tableFooter,
-                storeData: data,
-                isLoadingSearch: false,
-                errorMessage: "",
-              });
-            } else if (response.status === 404) {
-              setState({
-                ...state,
-                tableHeadersWeeklyGoals: [],
-                tableRows: [],
-                storeData: [],
-                isLoadingSearch: false,
-                errorMessage: "No existe registro con este año y mes."
-              });
-            } else {
-              setState({
-                ...state,
-                tableHeadersWeeklyGoals: [],
-                tableRows: [],
-                storeData: [],
-                isLoadingSearch: false,
-                errorMessage: "Error inesperado!"
-              });
-            }
-          })
-          .catch((error) => {
-            if (error.response.status === 404) {
-              setState({
-                ...state,
-                tableHeadersWeeklyGoals: [],
-                tableRows: [],
-                storeData: [],
-                isLoadingSearch: false,
-                errorMessage: "Recurso no encontrado!"
-              });
-            } else {
-              setState({
-                ...state,
-                tableHeadersWeeklyGoals: [],
-                tableRows: [],
-                storeData: [],
-                isLoadingSearch: false,
-                errorMessage: "Error inesperado!"
-              });
-            }
-          });
-      }, 1000);
+            setState({
+              ...state,
+              tableHeadersWeeklyGoals: rangesDates,
+              tableRows: tableRows,
+              tableFooter: tableFooter,
+              storesData: storesData,
+              isLoadingSearch: false,
+              errorMessage: "",
+            });
+          } else if (response.status === 404) {
+            setState({
+              ...state,
+              tableHeadersWeeklyGoals: [],
+              tableRows: [],
+              storesData: [],
+              isLoadingSearch: false,
+              errorMessage: "No existe registro con este año y mes."
+            });
+          } else {
+            setState({
+              ...state,
+              tableHeadersWeeklyGoals: [],
+              tableRows: [],
+              storesData: [],
+              isLoadingSearch: false,
+              errorMessage: "Error inesperado!"
+            });
+          }
+        })
+        .catch((error) => {
+          if (error.response.status === 404) {
+            setState({
+              ...state,
+              tableHeadersWeeklyGoals: [],
+              tableRows: [],
+              storesData: [],
+              isLoadingSearch: false,
+              errorMessage: "Recurso no encontrado!"
+            });
+          } else {
+            setState({
+              ...state,
+              tableHeadersWeeklyGoals: [],
+              tableRows: [],
+              storesData: [],
+              isLoadingSearch: false,
+              errorMessage: "Error inesperado!"
+            });
+          }
+        });
     } else {
       setState({
         ...state,
@@ -223,19 +224,22 @@ function App() {
     })
 
     const tableRows = state.tableRows;
-    const payload: Array<StoreData> = [];
+    const payload: Array<SdtLibretaMetasLocal> = [];
 
     for (let i = 0; i < tableRows.length; i++) {
       const row = tableRows[i];
       const weeklyGoals = row.weeklyGoals;
       const data = {
-        localId: row.storeId,
-        meta_uno: row.goalOne,
-        meta_dos: row.goalTwo,
-        metas_semanales: weeklyGoals.map((weeklyGoal) => {
+        anio: state.year,
+        mes: state.month,
+        local_id: row.storeId,
+        meta_mensual_uno: row.goalOne,
+        meta_mensual_dos: row.goalTwo,
+        semanas: weeklyGoals.map((weeklyGoal, index) => {
           return {
-            desde: weeklyGoal.dateFrom,
-            hasta: weeklyGoal.dateEnd,
+            linea: index + 1,
+            fecha_desde: weeklyGoal.dateFrom,
+            fecha_hasta: weeklyGoal.dateEnd,
             meta: weeklyGoal.value,
           }
         }),
@@ -438,7 +442,7 @@ function App() {
       {
         !state.isLoadingSearch &&
         !state.errorMessage &&
-        state.storeData.length > 0 &&
+        state.storesData.length > 0 &&
         <Table
           rangeDates={state.tableHeadersWeeklyGoals}
           rows={state.tableRows}

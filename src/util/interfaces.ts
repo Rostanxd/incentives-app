@@ -33,19 +33,29 @@ export interface TableFooter {
 }
 
 //  Structure that coming from APIs
-export interface WeeklyGoal {
-  desde: string,
-  hasta: string,
+export interface SdtLibretaMetasLocalesSemana {
+  linea?: number,
+  fecha_desde: string,
+  fecha_hasta: string,
   meta: number,
-
   [key: string]: any
 }
 
-export interface StoreData {
-  "localId": string,
-  "local"?: string,
-  "estado"?: string,
-  "meta_uno": number,
-  "meta_dos": number,
-  "metas_semanales": Array<WeeklyGoal>
+export interface SdtLibretaMetasLocal {
+  local_id: string,
+  local_nombre?: string,
+  estado?: string,
+  meta_mensual_uno: number,
+  meta_mensual_dos: number,
+  semanas: Array<SdtLibretaMetasLocalesSemana>
+}
+
+export interface SdtLibretaMetas {
+  anio: number,
+  mes: number,
+  locales: Array<SdtLibretaMetasLocal>
+}
+
+export interface LibretasMetasData {
+  SdtLibretaMetas: SdtLibretaMetas,
 }

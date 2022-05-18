@@ -1,0 +1,37 @@
+td > input {
+  max-width: 100px;
+}
+
+.wrapper {
+  position: relative;
+  overflow: auto;
+}
+
+.tableColFrozen {
+  position: -webkit-sticky;
+  position: sticky;
+  background-color: #ffffff;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+  left: 0;
+  z-index: 1;
+
+  padding-top: 0.5em;
+  padding-right: 0.75em;
+  padding-bottom: 0.5em;
+}
+
+
+/* Breakpoints */
+@media (max-width: 480px) {
+  table {
+    font-size: 0.8rem;
+  }
+
+  .tableColFrozen {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+  }
+}

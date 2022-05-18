@@ -1,12 +1,17 @@
 import axios from 'axios';
-
+import Config from '../config';
 
 const IncentivesAPI = {
   getIncentives: (year, month) => {
-    return axios.get(`https://watch-world.s3.us-east-2.amazonaws.com/apps/incentives-app/tests/dummy_data_${year}_${month}.json`);
+    //return axios.get(`./tests/dummy_data_new_${year}_${month}.json`);
+    const body = {
+      "anio": year,
+      "mes": month
+    }
+    return axios.post(`${Config.baseURL}/WsNomLibretaMetasGET`, body);
   },
   postIncentives: (year, month, payload) => {
-    return axios.post(`./incentives`, payload);
+    return axios.post(`${Config.baseURL}/WsNomLibretaMetasPOST`, payload);
   },
 }
 
