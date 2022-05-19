@@ -26,11 +26,19 @@ const Table = (props: TableProps) => {
   }
 
   const handleOnChangeGoal = (goal: string, storeId: string, event: any) => {
-    props.handleChangeGoal(goal, storeId, +event.target.value);
+    const reg = /^\d+$/;
+    const value = event.target.value;
+    if (reg.test(value) || value === "") {
+      props.handleChangeGoal(goal, storeId, +value);
+    }
   }
 
   const handleOnChangeWeeklyGoal = (alias: string, storeId: string, event: any) => {
-    props.handleChangeWeeklyGoals(alias, storeId, +event.target.value);
+    const reg = /^\d+$/;
+    const value = event.target.value;
+    if (reg.test(value) || value === "") {
+      props.handleChangeWeeklyGoals(alias, storeId, +value);
+    }
   }
 
   const handleNewColumn = (event: any) => {

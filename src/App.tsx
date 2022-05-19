@@ -48,9 +48,10 @@ const APP_INITIAL_STATE: AppState = {
 function App() {
   const [state, setState] = useState<AppState>(APP_INITIAL_STATE);
 
+  // This useEffect is called whenever the year or month is updated.
   useEffect(() => {
     getIncentivesByYearAndMonth(state.year, state.month);
-  }, []);
+  }, [state.year, state.month]);
 
   const getIncentivesByYearAndMonth = (year: number, month: number) => {
     if (!!year && !!month) {
