@@ -21,8 +21,7 @@ import * as reactDayPicker from "react-datepicker";
 
 import pkg from './package.json';
 
-export default [
-  {
+export default {
     input: "src/index.tsx",
     inlineDynamicImports: true,
     output: [
@@ -31,20 +30,7 @@ export default [
         format: 'cjs',
         exports: 'named',
         sourcemap: true
-      },
-      {
-        file: pkg.module,
-        format: 'esm',
-        exports: 'named',
-        sourcemap: true
-      },
-      {
-        file: pkg.umd,
-        format: 'umd',
-        name: 'tentrr-components',
-        exports: 'named',
-        sourcemap: true
-      },
+      }
     ],
     plugins: [
       del({targets: ['lib/*']}),
@@ -69,6 +55,11 @@ export default [
         minimize: true,
         plugins: [inlineCssImports, autoprefixer, cssnano]
       }),
+      terser({
+        output: {
+          comments: false
+        }
+      }),
       typescript(),
       resolve({
         browser: true
@@ -80,93 +71,4 @@ export default [
         presets: ["@babel/preset-react"],
       }),
     ]
-  },
-  {
-    input: 'src/utils/index.ts',
-    output: [
-      {
-        file: 'lib/utils.js',
-        format: 'cjs',
-        exports: 'named',
-        sourcemap: true
-      },
-      {
-        file: 'lib/utils.es.js',
-        format: 'esm',
-        exports: 'named',
-        sourcemap: true
-      }
-    ],
-    plugins: [
-      replace({
-        exclude: 'node_modules/**',
-        "process.env.NODE_ENV": JSON.stringify("production")
-      }),
-      resolve({
-        browser: true,
-        preferBuiltins: false
-      }),
-      typescript({
-        rollupCommonJSResolveHack: true,
-        clean: true
-      }),
-      commonjs({
-        include: ['node_modules/**'],
-      }),
-      globals({
-        'react': 'React',
-        'react-dom': 'ReactDOM'
-      }),
-      builtins(),
-      terser({
-        output: {
-          comments: false
-        }
-      })
-    ]
-  },
-  {
-    input: 'src/interfaces/index.ts',
-    output: [
-      {
-        file: 'lib/interfaces.js',
-        format: 'cjs',
-        exports: 'named',
-        sourcemap: true
-      },
-      {
-        file: 'lib/interfaces.es.js',
-        format: 'esm',
-        exports: 'named',
-        sourcemap: true
-      }
-    ],
-    plugins: [
-      replace({
-        exclude: 'node_modules/**',
-        "process.env.NODE_ENV": JSON.stringify("production")
-      }),
-      resolve({
-        browser: true,
-        preferBuiltins: false
-      }),
-      typescript({
-        rollupCommonJSResolveHack: true,
-        clean: true
-      }),
-      commonjs({
-        include: ['node_modules/**'],
-      }),
-      globals({
-        'react': 'React',
-        'react-dom': 'ReactDOM'
-      }),
-      builtins(),
-      terser({
-        output: {
-          comments: false
-        }
-      })
-    ]
-  }
-];
+  };
