@@ -17,7 +17,7 @@ import inlineCssImports from "postcss-import";
 
 import * as reactDom from "react-dom";
 import * as react from "react";
-import * as reactDayPicker from "react-day-picker";
+import * as reactDayPicker from "react-datepicker";
 
 import pkg from './package.json';
 
