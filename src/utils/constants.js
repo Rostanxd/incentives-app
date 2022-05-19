@@ -1,3 +1,8 @@
+const YEARS = [
+  2022,
+  2023
+];
+
 const MONTHS = [
   {value: 1, name: "Enero"},
   {value: 2, name: "Febrero"},
@@ -13,6 +18,6 @@ const MONTHS = [
   {value: 12, name: "Diciembre"},
 ];
 
-const DATE_STRING_FORMAT = "YYYY/MM/DD";
+const DATE_STRING_FORMAT = "YYYY-MM-DD";
 
-export {MONTHS, DATE_STRING_FORMAT};
+export default {YEARS, MONTHS, DATE_STRING_FORMAT};

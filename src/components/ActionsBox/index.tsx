@@ -1,16 +1,17 @@
 import React, {MouseEvent} from 'react';
 import Filters from "../Filters";
-import {Month} from "../../util/interfaces";
+import {Month} from "../../interfaces/index";
 
 import styles from './styles.module.css';
 
 type ActionBoxProps = {
   years: Array<number>,
   months: Array<Month>,
-  initialYear: number,
-  initialMonth: number,
-  handleSearch?: any,
-  handleSubmit?: any,
+  year: number,
+  month: number,
+  handleChangeYearOrMonth: any,
+  handleSearch: any,
+  handleSubmit: any,
   isLoadingSearch: boolean,
   isLoadingSubmit: boolean,
 }
@@ -26,8 +27,9 @@ const ActionsBox = (props: ActionBoxProps) => {
       <Filters
         years={props.years}
         months={props.months}
-        initialYear={props.initialYear}
-        initialMonth={props.initialMonth}
+        year={props.year}
+        month={props.month}
+        handleChangeYearOrMonth={props.handleChangeYearOrMonth}
         handleSearch={props.handleSearch}
         isLoadingSearch={props.isLoadingSearch}
       />

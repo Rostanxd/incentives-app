@@ -1,14 +1,15 @@
 import React, {MouseEvent, useState, useEffect} from 'react';
-import {Month} from "../../util/interfaces";
+import {Month} from "../../interfaces/index";
 
 import styles from './styles.module.css';
 
 type FiltersProps = {
   years: Array<number>,
   months: Array<Month>,
-  initialYear: number,
-  initialMonth: number,
-  handleSearch?: any,
+  year: number,
+  month: number,
+  handleChangeYearOrMonth: any,
+  handleSearch: any,
   isLoadingSearch: boolean,
 }
 
@@ -22,14 +23,14 @@ const Filters = (props: FiltersProps) => {
 
   useEffect(() => {
     setState({
-      year: props.initialYear,
-      month: props.initialMonth,
+      year: props.year,
+      month: props.month,
     })
   }, []);
 
   const handleOnClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    props.handleSearch(state.year, state.month);
+    props.handleSearch();
   }
 
   const handleChangeSelect = (event: any) => {
@@ -38,7 +39,9 @@ const Filters = (props: FiltersProps) => {
     setState({
       ...state,
       [name]: value,
-    })
+    });
+
+    props.handleChangeYearOrMonth(event);
   }
 
   return (

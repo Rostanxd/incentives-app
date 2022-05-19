@@ -4,11 +4,18 @@ import moment from "moment";
 import ActionsBox from "./components/ActionsBox";
 import Table from "./components/Table";
 import IncentivesAPI from "./services/IncentivesAPI";
-import {MONTHS} from "./util/constants";
-import {LibretasMetasData, SdtLibretaMetasLocal, TableFooter, TableHeaderWeeklyGoal, TableRow} from "./util/interfaces";
+import {Constants} from "./utils/index";
+import {
+  LibretasMetasData,
+  SdtLibretaMetasLocal,
+  TableFooter,
+  TableHeaderWeeklyGoal,
+  TableRow
+} from "./interfaces/index";
 
 import 'bulma/css/bulma.css';
-import {dateStringToAlias} from "./util/functions";
+
+import {Functions} from "./utils/index";
 
 interface AppState {
   year: number,
@@ -39,13 +46,7 @@ const APP_INITIAL_STATE: AppState = {
 }
 
 function App() {
-  //  Getting values from the URL
-  const queryParams = new URLSearchParams(window.location.search);
-  const queryYear = queryParams.get('anio');
-  const queryMonth = queryParams.get('mes');
-  const year = !!queryYear ? +queryYear : APP_INITIAL_STATE.year;
-  const month = !!queryMonth ? +queryMonth : APP_INITIAL_STATE.month;
-  const [state, setState] = useState<AppState>({...APP_INITIAL_STATE, year: year, month: month});
+  const [state, setState] = useState<AppState>(APP_INITIAL_STATE);
 
   useEffect(() => {
     getIncentivesByYearAndMonth(state.year, state.month);
@@ -81,7 +82,7 @@ function App() {
               //  Logic to get the ranges of dates
               for (let x = 0; x < weeklyGoals.length; x++) {
                 const weeklyGoal = weeklyGoals[x];
-                const rangeDate = `${dateStringToAlias(weeklyGoal.fecha_desde)} - ${dateStringToAlias(weeklyGoal.fecha_hasta)}`;
+                const rangeDate = `${Functions.dateStringToAlias(weeklyGoal.fecha_desde)} - ${Functions.dateStringToAlias(weeklyGoal.fecha_hasta)}`;
                 weeklyGoal[rangeDate] = weeklyGoal.meta;
                 if (
                   rangesDates.length === 0 ||
@@ -128,19 +129,28 @@ function App() {
                 goalTwo: storeData.meta_mensual_dos,
                 status: storeData.estado,
                 weeklyGoals: rangesDates.map((range) => {
-                  const filter = weeklyGoals.filter((weeklyGoal) => !!weeklyGoal[range.alias])?.[0];
-                  return !!filter ?
-                    {
-                      alias: range.alias,
-                      value: filter.meta,
-                      dateFrom: filter.fecha_desde,
-                      dateEnd: filter.fecha_hasta,
-                    } : {
+                  if (!!weeklyGoals && weeklyGoals.length > 0) {
+                    const filter = weeklyGoals.filter((weeklyGoal) => !!weeklyGoal[range.alias])?.[0];
+                    return !!filter ?
+                      {
+                        alias: range.alias,
+                        value: filter.meta,
+                        dateFrom: filter.fecha_desde,
+                        dateEnd: filter.fecha_hasta,
+                      } : {
+                        alias: range.alias,
+                        value: 0,
+                        dateFrom: "",
+                        dateEnd: "",
+                      };
+                  } else {
+                    return {
                       alias: range.alias,
                       value: 0,
-                      dateFrom: "",
-                      dateEnd: "",
-                    };
+                      dateFrom: range.dateFrom,
+                      dateEnd: range.dateEnd,
+                    }
+                  }
                 })
               });
 
@@ -183,6 +193,7 @@ function App() {
           }
         })
         .catch((error) => {
+          console.error(error);
           if (error.response.status === 404) {
             setState({
               ...state,
@@ -212,8 +223,8 @@ function App() {
     }
   }
 
-  const handleSearch = (year: number, month: number) => {
-    getIncentivesByYearAndMonth(year, month);
+  const handleSearch = () => {
+    getIncentivesByYearAndMonth(state.year, state.month);
   }
 
   const handleSubmit = () => {
@@ -224,14 +235,18 @@ function App() {
     })
 
     const tableRows = state.tableRows;
-    const payload: Array<SdtLibretaMetasLocal> = [];
+    const payload: LibretasMetasData = {
+      SdtLibretaMetas: {
+        anio: state.year,
+        mes: state.month,
+        locales: []
+      }
+    };
 
     for (let i = 0; i < tableRows.length; i++) {
       const row = tableRows[i];
       const weeklyGoals = row.weeklyGoals;
       const data = {
-        anio: state.year,
-        mes: state.month,
         local_id: row.storeId,
         meta_mensual_uno: row.goalOne,
         meta_mensual_dos: row.goalTwo,
@@ -244,16 +259,38 @@ function App() {
           }
         }),
       }
-      payload.push(data);
+      payload.SdtLibretaMetas.locales.push(data);
     }
 
-    // TODO: calling the real submit API
-    alert(JSON.stringify(payload));
     setState({
       ...state,
-      isLoadingSubmit: false,
+      isLoadingSubmit: true,
       errorMessage: "",
-    })
+    });
+
+    IncentivesAPI.postIncentives(state.year, state.month, payload)
+      .then((data) => {
+        console.log(data);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => {
+        setState({
+          ...state,
+          isLoadingSubmit: false,
+          errorMessage: "",
+        });
+      });
+  }
+
+  const handleChangeYearOrMonth = (event: any) => {
+    const name = event.target.name;
+    const value = +event.target.value;
+    setState({
+      ...state,
+      [name]: value,
+    });
   }
 
   const handleChangeWeekDates = (alias: string, dateType: string, newDate: string) => {
@@ -276,9 +313,10 @@ function App() {
       }
 
       // Alias
-      const newAlias = `${dateStringToAlias(tableHeaderWeeklyGoal.dateFrom)} - ${dateStringToAlias(tableHeaderWeeklyGoal.dateEnd)}`;
+      const newAlias = `${Functions.dateStringToAlias(tableHeaderWeeklyGoal.dateFrom)} - ${Functions.dateStringToAlias(tableHeaderWeeklyGoal.dateEnd)}`;
       tableHeaderWeeklyGoal.alias = newAlias;
       tableFooterWeeklyGoal.alias = newAlias;
+
       // Updating rows
       for (let i = 0; i < tableRows.length; i++) {
         const row = tableRows[i];
@@ -286,6 +324,11 @@ function App() {
           const goal = row.weeklyGoals[x];
           if (goal.alias === alias) {
             goal.alias = newAlias;
+            if (dateType === 'from') {
+              goal.dateFrom = newDate;
+            } else {
+              goal.dateEnd = newDate;
+            }
             break;
           }
         }
@@ -428,10 +471,11 @@ function App() {
   return (
     <div className={"section"}>
       <ActionsBox
-        years={[2022]}
-        months={MONTHS}
-        initialYear={state.year}
-        initialMonth={state.month}
+        years={Constants.YEARS}
+        months={Constants.MONTHS}
+        year={state.year}
+        month={state.month}
+        handleChangeYearOrMonth={handleChangeYearOrMonth}
         handleSearch={handleSearch}
         handleSubmit={handleSubmit}
         isLoadingSearch={state.isLoadingSearch}

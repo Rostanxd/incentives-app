@@ -2,11 +2,10 @@ import React from 'react';
 import DatePicker from "react-datepicker";
 import moment from "moment";
 
-import {DATE_STRING_FORMAT} from "../../util/constants";
-import {TableFooter, TableHeaderWeeklyGoal, TableRow} from "../../util/interfaces";
+import {Constants}  from "../../utils/index";
+import {TableFooter, TableHeaderWeeklyGoal, TableRow} from "../../interfaces/index";
 
 import "react-datepicker/dist/react-datepicker.css";
-
 import './styles.css'
 import styles from './styles.module.css';
 
@@ -23,7 +22,7 @@ type TableProps = {
 
 const Table = (props: TableProps) => {
   const handleOnClickHeaderWeeklyGoals = (alias: string, dateType: 'from' | 'end', date: Date) => {
-    props.handleChangeWeekDates(alias, dateType, moment(date).format(DATE_STRING_FORMAT));
+    props.handleChangeWeekDates(alias, dateType, moment(date).format(Constants.DATE_STRING_FORMAT));
   }
 
   const handleOnChangeGoal = (goal: string, storeId: string, event: any) => {
@@ -61,13 +60,13 @@ const Table = (props: TableProps) => {
                 <th key={index}>
                   {/*<p>{range.alias}</p>*/}
                   <DatePicker
-                    selected={!!range.dateFrom ? moment(range.dateFrom, DATE_STRING_FORMAT).toDate() : null}
+                    selected={!!range.dateFrom ? moment(range.dateFrom, Constants.DATE_STRING_FORMAT).toDate() : null}
                     onChange={(date: Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'from', date)}
                     className={'calendar-input'}
                   />
                   <br/>
                   <DatePicker
-                    selected={!!range.dateEnd ? moment(range.dateEnd, DATE_STRING_FORMAT).toDate() : null}
+                    selected={!!range.dateEnd ? moment(range.dateEnd, Constants.DATE_STRING_FORMAT).toDate() : null}
                     onChange={(date: Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'end', date)}
                     className={'calendar-input'}
                   />
@@ -127,6 +126,8 @@ const Table = (props: TableProps) => {
                           onChange={(event) => handleOnChangeWeeklyGoal(weeklyGoal.alias, row.storeId, event)}
                         />
                         {/*<p>{weeklyGoal.alias}</p>*/}
+                        {/*<p>{weeklyGoal.dateFrom}</p>*/}
+                        {/*<p>{weeklyGoal.dateEnd}</p>*/}
                       </td>
                     );
                   })
