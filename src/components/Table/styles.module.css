@@ -22,6 +22,11 @@ td > input {
   padding-bottom: 0.5em;
 }
 
+.rowError {
+  color: darkred;
+  font-weight: bold;
+}
+
 
 /* Breakpoints */
 @media (max-width: 480px) {

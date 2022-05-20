@@ -36,6 +36,7 @@ const ActionsBox = (props: ActionBoxProps) => {
       <button
         className={`button is-primary ${props.isLoadingSubmit ? 'is-loading' : ''}`}
         onClick={handleOnClick}
+        style={{fontSize: '1em'}}
       >
         Guardar
       </button>

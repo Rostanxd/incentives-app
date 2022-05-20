@@ -13,6 +13,7 @@ type TableProps = {
   rangeDates: Array<TableHeaderWeeklyGoal>,
   rows: Array<TableRow>,
   footer: TableFooter,
+  isLoadingSubmit: boolean,
   handleChangeWeekDates: any,
   handleChangeGoal: any,
   handleChangeWeeklyGoals: any,
@@ -68,15 +69,17 @@ const Table = (props: TableProps) => {
                 <th key={index}>
                   {/*<p>{range.alias}</p>*/}
                   <DatePicker
+                    disabled={props.isLoadingSubmit}
                     selected={!!range.dateFrom ? moment(range.dateFrom, Constants.DATE_STRING_FORMAT).toDate() : null}
                     onChange={(date: Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'from', date)}
-                    className={'calendar-input'}
+                    className={`calendar-input ${range.error ? 'column-error' : ''}`}
                   />
                   <br/>
                   <DatePicker
+                    disabled={props.isLoadingSubmit}
                     selected={!!range.dateEnd ? moment(range.dateEnd, Constants.DATE_STRING_FORMAT).toDate() : null}
                     onChange={(date: Date) => handleOnClickHeaderWeeklyGoals(range.alias, 'end', date)}
-                    className={'calendar-input'}
+                    className={`calendar-input ${range.error ? 'column-error' : ''}`}
                   />
                   <br/>
                   <a onClick={(event) => handleOnDeleteColumn(range.alias, event)}>Elminar -</a>
@@ -108,10 +111,11 @@ const Table = (props: TableProps) => {
           props.rows.map((row) => {
             return (
               <tr key={`store-row-${row.storeId}`}>
-                <th className={styles.tableColFrozen}>{row.storeName}</th>
+                <th className={styles.tableColFrozen} style={{color: `${row.error ? 'darkred' : ''}`}}>{row.storeName}</th>
                 {/*<td>{row.status}</td>*/}
                 <td>
                   <input
+                    disabled={props.isLoadingSubmit}
                     type="text"
                     value={row.goalOne}
                     onChange={(event) => handleOnChangeGoal("one", row.storeId, event)}
@@ -119,6 +123,7 @@ const Table = (props: TableProps) => {
                 </td>
                 <td>
                   <input
+                    disabled={props.isLoadingSubmit}
                     type="text"
                     value={row.goalTwo}
                     onChange={(event) => handleOnChangeGoal("two", row.storeId, event)}
@@ -129,6 +134,8 @@ const Table = (props: TableProps) => {
                     return (
                       <td key={`range-date-${index}`}>
                         <input
+                          className={row.error ? styles.rowError : ''}
+                          disabled={props.isLoadingSubmit}
                           type="text"
                           value={weeklyGoal.value}
                           onChange={(event) => handleOnChangeWeeklyGoal(weeklyGoal.alias, row.storeId, event)}

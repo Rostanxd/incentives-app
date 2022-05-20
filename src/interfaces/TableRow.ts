@@ -6,5 +6,6 @@ export default interface TableRow {
   goalOne: number,
   goalTwo: number,
   status?: string,
-  weeklyGoals: Array<TableColumnWeeklyGoal>
+  weeklyGoals: Array<TableColumnWeeklyGoal>,
+  error?: boolean
 }

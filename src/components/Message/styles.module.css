@@ -1,0 +1,11 @@
+.messageContainer {
+  margin-bottom: 1rem;
+}
+
+.successMessage {
+  color: darkgreen;
+}
+
+.errorMessage {
+  color: darkred;
+}

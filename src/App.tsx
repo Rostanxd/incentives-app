@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import moment from "moment";
 
 import ActionsBox from "./components/ActionsBox";
+import Message from "./components/Message";
 import Table from "./components/Table";
 import IncentivesAPI from "./services/IncentivesAPI";
 import {Constants} from "./utils/index";
@@ -26,7 +27,8 @@ interface AppState {
   storesData: Array<SdtLibretaMetasLocal>,
   isLoadingSearch: boolean,
   isLoadingSubmit: boolean,
-  errorMessage: string,
+  error: boolean,
+  message: string,
 }
 
 const APP_INITIAL_STATE: AppState = {
@@ -42,7 +44,8 @@ const APP_INITIAL_STATE: AppState = {
   storesData: [],
   isLoadingSearch: false,
   isLoadingSubmit: false,
-  errorMessage: "",
+  error: false,
+  message: "",
 }
 
 function App() {
@@ -58,7 +61,7 @@ function App() {
       setState({
         ...state,
         isLoadingSearch: true,
-        errorMessage: "",
+        message: "",
       });
 
       IncentivesAPI.getIncentives(year, month)
@@ -141,8 +144,8 @@ function App() {
                       } : {
                         alias: range.alias,
                         value: 0,
-                        dateFrom: "",
-                        dateEnd: "",
+                        dateFrom: range.dateFrom,
+                        dateEnd: range.dateEnd,
                       };
                   } else {
                     return {
@@ -171,7 +174,7 @@ function App() {
               tableFooter: tableFooter,
               storesData: storesData,
               isLoadingSearch: false,
-              errorMessage: "",
+              message: "",
             });
           } else if (response.status === 404) {
             setState({
@@ -180,7 +183,7 @@ function App() {
               tableRows: [],
               storesData: [],
               isLoadingSearch: false,
-              errorMessage: "No existe registro con este año y mes."
+              message: "No existe registro con este año y mes."
             });
           } else {
             setState({
@@ -189,7 +192,7 @@ function App() {
               tableRows: [],
               storesData: [],
               isLoadingSearch: false,
-              errorMessage: "Error inesperado!"
+              message: "Error inesperado!"
             });
           }
         })
@@ -202,7 +205,7 @@ function App() {
               tableRows: [],
               storesData: [],
               isLoadingSearch: false,
-              errorMessage: "Recurso no encontrado!"
+              message: "Recurso no encontrado!"
             });
           } else {
             setState({
@@ -211,7 +214,7 @@ function App() {
               tableRows: [],
               storesData: [],
               isLoadingSearch: false,
-              errorMessage: "Error inesperado!"
+              message: "Error inesperado!"
             });
           }
         });
@@ -219,7 +222,7 @@ function App() {
       setState({
         ...state,
         isLoadingSearch: false,
-        errorMessage: "No has seleccionado año o mes",
+        message: "No has seleccionado año o mes",
       })
     }
   }
@@ -229,13 +232,43 @@ function App() {
   }
 
   const handleSubmit = () => {
-    setState({
-      ...state,
-      isLoadingSubmit: true,
-      errorMessage: "",
-    })
+    const tableRows = [... state.tableRows];
 
-    const tableRows = state.tableRows;
+    // Checking weekly goals sum
+    for (let i = 0; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      let weeklyGoalSum = 0;
+      row.weeklyGoals.forEach((goal) => {
+        weeklyGoalSum += goal.value;
+      });
+      row.error = row.goalOne < weeklyGoalSum;
+    }
+
+    if (tableRows.filter((row) => row.error).length > 0) {
+      setState({
+        ...state,
+        tableRows: tableRows,
+        error: true,
+        message: "Existen locales que su meta semanal excede a la meta uno",
+      })
+      return;
+    }
+
+    //  Checking weekly headers
+    const tableHeadersWeeklyGoals = [... state.tableHeadersWeeklyGoals]
+    for (let i = 0; i < tableHeadersWeeklyGoals.length; i++) {
+      const header = tableHeadersWeeklyGoals[i];
+      header.error = !header.dateFrom || !header.dateEnd;
+    }
+    if (tableHeadersWeeklyGoals.filter((header) => header.error).length > 0) {
+      setState({
+        ...state,
+        error: true,
+        message: "Existe semanas las cuales carecen de fecha de inicio o fin",
+      })
+      return;
+    }
+
     const payload: LibretasMetasData = {
       SdtLibretaMetas: {
         anio: state.year,
@@ -266,21 +299,35 @@ function App() {
     setState({
       ...state,
       isLoadingSubmit: true,
-      errorMessage: "",
+      error: false,
+      message: "",
     });
 
     IncentivesAPI.postIncentives(state.year, state.month, payload)
       .then((data) => {
         console.log(data);
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => {
         setState({
           ...state,
           isLoadingSubmit: false,
-          errorMessage: "",
+          error: false,
+          message: "Se ha actualizado la libreta",
+        });
+
+        //  Timeout to hide the message after 3 seconds
+        setTimeout(() => {
+          setState({
+            ...state,
+            message: ""
+          });
+        }, 3000);
+      })
+      .catch((error) => {
+        console.error(error);
+        setState({
+          ...state,
+          isLoadingSubmit: false,
+          error: true,
+          message: "Error inesperado",
         });
       });
   }
@@ -470,7 +517,7 @@ function App() {
   }
 
   return (
-    <div className={"section"}>
+    <div className={"section"} style={{width: '100vw'}}>
       <ActionsBox
         years={Constants.YEARS}
         months={Constants.MONTHS}
@@ -483,15 +530,15 @@ function App() {
         isLoadingSubmit={state.isLoadingSubmit}
       />
       {state.isLoadingSearch && <div>Cargando...</div>}
-      {!!state.errorMessage && <div>{state.errorMessage}</div>}
+      {!!state.message && <Message isError={state.error} text={state.message}/>}
       {
         !state.isLoadingSearch &&
-        !state.errorMessage &&
         state.storesData.length > 0 &&
         <Table
           rangeDates={state.tableHeadersWeeklyGoals}
           rows={state.tableRows}
           footer={state.tableFooter}
+          isLoadingSubmit={state.isLoadingSubmit}
           handleChangeWeekDates={handleChangeWeekDates}
           handleChangeGoal={handleChangeGoals}
           handleChangeWeeklyGoals={handleChangeWeeklyGoals}

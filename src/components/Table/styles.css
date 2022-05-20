@@ -1,3 +1,7 @@
 .calendar-input {
   max-width: 100px;
 }
+
+.column-error {
+  border: 2px solid darkred;
+}

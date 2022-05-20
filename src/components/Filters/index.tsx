@@ -82,6 +82,7 @@ const Filters = (props: FiltersProps) => {
         <button
           className={`button ${props.isLoadingSearch ? 'is-loading' : ''}`}
           onClick={handleOnClick}
+          style={{fontSize: '1em'}}
         >
           Buscar
         </button>
