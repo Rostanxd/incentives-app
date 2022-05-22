@@ -17,6 +17,7 @@ import {
 import 'bulma/css/bulma.css';
 
 import {Functions} from "./utils/index";
+import Modal from "./components/Modal";
 
 interface AppState {
   year: number,
@@ -29,6 +30,18 @@ interface AppState {
   isLoadingSubmit: boolean,
   error: boolean,
   message: string,
+  modal: {
+    title: string,
+    text: string,
+    isOpen: boolean,
+    okButtonDisplayed?: boolean,
+    okButtonText?: string,
+    okButtonClassNames?: string,
+    okButtonCallback?: any,
+    cancelButtonDisplayed?: boolean,
+    cancelButtonText?: string,
+    cancelButtonClassNames?: string
+  }
 }
 
 const APP_INITIAL_STATE: AppState = {
@@ -46,6 +59,13 @@ const APP_INITIAL_STATE: AppState = {
   isLoadingSubmit: false,
   error: false,
   message: "",
+  modal: {
+    title: "",
+    text: "",
+    isOpen: false,
+    okButtonDisplayed: true,
+    cancelButtonDisplayed: true,
+  }
 }
 
 function App() {
@@ -232,7 +252,88 @@ function App() {
   }
 
   const handleSubmit = () => {
-    const tableRows = [... state.tableRows];
+    const tableRows = [...state.tableRows];
+    const tableHeadersWeeklyGoals = [...state.tableHeadersWeeklyGoals];
+
+    // Checking weeks
+    if (!(tableHeadersWeeklyGoals.length > 0)) {
+      setState({
+        ...state,
+        error: true,
+        message: "No ha definido las metas semanales",
+      })
+      return;
+    }
+
+    // Checking overlapped dates
+    let dateFrom = null;
+    let dateEnd = null;
+    let notebookDates = [];
+    let headerDates = [];
+
+    // Getting start and end dates
+    for (let i = 0; i < tableHeadersWeeklyGoals.length; i++) {
+      const weeklyGoal = tableHeadersWeeklyGoals[i];
+      if (!dateFrom) {
+        dateFrom = weeklyGoal.dateFrom;
+      }
+
+      if (!dateEnd) {
+        dateEnd = weeklyGoal.dateEnd;
+      }
+
+      if (moment(dateFrom).isSameOrAfter(weeklyGoal.dateFrom)) {
+        dateFrom = weeklyGoal.dateFrom;
+      }
+
+      if (moment(dateFrom).isSameOrBefore(weeklyGoal.dateEnd)) {
+        dateEnd = weeklyGoal.dateEnd;
+      }
+    }
+
+    // Getting all dates based on the start and end dates
+    for (
+      let i = moment(dateFrom);
+      i.isBefore(moment(dateEnd).add(1, 'days'));
+      i.add(1, 'days')
+    ) {
+      notebookDates.push(i.format(Constants.DATE_STRING_FORMAT));
+    }
+
+    // Checking weekly dates
+    for (let i = 0; i < tableHeadersWeeklyGoals.length; i++) {
+      const weeklyGoals = tableHeadersWeeklyGoals[i];
+      for (
+        let x = moment(weeklyGoals.dateFrom);
+        x.isBefore(moment(weeklyGoals.dateEnd).add(1, 'days'));
+        x.add(1, 'days')
+      ) {
+        const dateString = x.format(Constants.DATE_STRING_FORMAT);
+        if (notebookDates.indexOf(dateString) != -1 && headerDates.indexOf(dateString) === -1) {
+          headerDates.push(dateString);
+        } else {
+          setState({
+            ...state,
+            error: true,
+            message: `Rangos semanales mal definidos, por favor corrija. Semana del ${dateString}`,
+          });
+          return
+        }
+      }
+    }
+
+    // Checking if there is no missing dates, based on the 'notebook' dates variable
+    for (let i = 0; i < notebookDates.length; i++) {
+      const dateString = notebookDates[i];
+      if (headerDates.indexOf(dateString) === -1) {
+        setState({
+          ...state,
+          error: true,
+          message: `Rangos semanales mal definidos, por favor corrija. Semana del ${dateString}`,
+        });
+        return
+      }
+    }
 
     // Checking weekly goals sum
     for (let i = 0; i < tableRows.length; i++) {
@@ -241,21 +342,19 @@ function App() {
       row.weeklyGoals.forEach((goal) => {
         weeklyGoalSum += goal.value;
       });
-      row.error = row.goalOne < weeklyGoalSum;
+      row.error = row.goalOne !== weeklyGoalSum;
     }
-
     if (tableRows.filter((row) => row.error).length > 0) {
       setState({
         ...state,
         tableRows: tableRows,
         error: true,
-        message: "Existen locales que su meta semanal excede a la meta uno",
+        message: "Existen locales que su meta semanal no equivale a la meta uno",
       })
       return;
     }
 
     //  Checking weekly headers
-    const tableHeadersWeeklyGoals = [... state.tableHeadersWeeklyGoals]
     for (let i = 0; i < tableHeadersWeeklyGoals.length; i++) {
       const header = tableHeadersWeeklyGoals[i];
       header.error = !header.dateFrom || !header.dateEnd;
@@ -310,16 +409,24 @@ function App() {
           ...state,
           isLoadingSubmit: false,
           error: false,
-          message: "Se ha actualizado la libreta",
+          message: "",
+          modal: {
+            isOpen: true,
+            title: "Actualizar Libreta",
+            text: "Se ha actualizado la libreta",
+            okButtonDisplayed: true,
+            okButtonCallback: () => {
+              setState(prevState => ({
+                ...prevState,
+                modal: {
+                  ...prevState.modal,
+                  isOpen: false
+                }
+              }));
+            },
+            cancelButtonDisplayed: false,
+          }
         });
-
-        //  Timeout to hide the message after 3 seconds
-        setTimeout(() => {
-          setState({
-            ...state,
-            message: ""
-          });
-        }, 3000);
       })
       .catch((error) => {
         console.error(error);
@@ -492,6 +599,31 @@ function App() {
   }
 
   const handleDeleteWeekDates = (alias: string) => {
+    setState({
+      ...state,
+      modal: {
+        isOpen: true,
+        title: "Eliminar Semana",
+        text: `Está seguro de eliminar la semana "${alias}"`,
+        okButtonDisplayed: true,
+        okButtonClassNames: "is-danger",
+        okButtonCallback: () => deleteWeekDate(alias),
+        cancelButtonDisplayed: true,
+      }
+    });
+  }
+
+  const handleOnCloseModal = () => {
+    setState({
+      ...state,
+      modal: {
+        ...state.modal,
+        isOpen: false,
+      }
+    })
+  }
+
+  const deleteWeekDate = (alias: string) => {
     let tableHeadersWeeklyGoals = [...state.tableHeadersWeeklyGoals];
     let tableRows = [...state.tableRows];
     let tableFooter = {...state.tableFooter};
@@ -508,45 +640,61 @@ function App() {
     // Filtering footer
     tableFooter.weeklyGoals = tableFooter.weeklyGoals.filter((goal) => goal.alias !== alias);
 
-    setState({
-      ...state,
+    setState(prevState => ({
+      ...prevState,
       tableHeadersWeeklyGoals: tableHeadersWeeklyGoals,
       tableRows: tableRows,
-      tableFooter: tableFooter
-    })
+      tableFooter: tableFooter,
+      modal: {
+        ...prevState.modal,
+        isOpen: false
+      }
+    }));
   }
 
   return (
-    <div className={"section"} style={{width: '100vw'}}>
-      <ActionsBox
-        years={Constants.YEARS}
-        months={Constants.MONTHS}
-        year={state.year}
-        month={state.month}
-        handleChangeYearOrMonth={handleChangeYearOrMonth}
-        handleSearch={handleSearch}
-        handleSubmit={handleSubmit}
-        isLoadingSearch={state.isLoadingSearch}
-        isLoadingSubmit={state.isLoadingSubmit}
-      />
-      {state.isLoadingSearch && <div>Cargando...</div>}
-      {!!state.message && <Message isError={state.error} text={state.message}/>}
-      {
-        !state.isLoadingSearch &&
-        state.storesData.length > 0 &&
-        <Table
-          rangeDates={state.tableHeadersWeeklyGoals}
-          rows={state.tableRows}
-          footer={state.tableFooter}
+    <>
+      <div className={"section"} style={{width: '100vw'}}>
+        <ActionsBox
+          years={Constants.YEARS}
+          months={Constants.MONTHS}
+          year={state.year}
+          month={state.month}
+          handleChangeYearOrMonth={handleChangeYearOrMonth}
+          handleSearch={handleSearch}
+          handleSubmit={handleSubmit}
+          isLoadingSearch={state.isLoadingSearch}
           isLoadingSubmit={state.isLoadingSubmit}
-          handleChangeWeekDates={handleChangeWeekDates}
-          handleChangeGoal={handleChangeGoals}
-          handleChangeWeeklyGoals={handleChangeWeeklyGoals}
-          handleNewWeekDates={handleNewWeekDates}
-          handleDeleteWeekDates={handleDeleteWeekDates}
         />
-      }
-    </div>
+        {state.isLoadingSearch && <div>Cargando...</div>}
+        {!!state.message && <Message isError={state.error} text={state.message}/>}
+        {
+          !state.isLoadingSearch &&
+          state.storesData.length > 0 &&
+          <Table
+            rangeDates={state.tableHeadersWeeklyGoals}
+            rows={state.tableRows}
+            footer={state.tableFooter}
+            isLoadingSubmit={state.isLoadingSubmit}
+            handleChangeWeekDates={handleChangeWeekDates}
+            handleChangeGoal={handleChangeGoals}
+            handleChangeWeeklyGoals={handleChangeWeeklyGoals}
+            handleNewWeekDates={handleNewWeekDates}
+            handleDeleteWeekDates={handleDeleteWeekDates}
+          />
+        }
+      </div>
+      <Modal
+        title={state.modal.title}
+        text={state.modal.text}
+        isOpen={state.modal.isOpen}
+        okButtonClassNames={state.modal.okButtonClassNames}
+        okButtonDisplayed={state.modal.okButtonDisplayed}
+        okButtonCallback={state.modal.okButtonCallback}
+        cancelButtonDisplayed={state.modal.cancelButtonDisplayed}
+        handleOnCloseModal={handleOnCloseModal}
+      />
+    </>
   );
 }
 
