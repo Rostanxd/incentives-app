@@ -6,4 +6,13 @@ const dateStringToAlias = (dateString) => {
   return !!date ? date.format('MM/DD') : 'NA';
 }
 
-export default {dateStringToAlias};
+const numberWithThousandsSeparator = (number) => {
+  if (!!number) {
+    var numParts = number.toString().split(".");
+    numParts[0] = numParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return numParts.join(".");
+  }
+  return "0";
+}
+
+export default {dateStringToAlias, numberWithThousandsSeparator};

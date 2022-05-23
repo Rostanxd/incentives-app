@@ -20,4 +20,6 @@ const MONTHS = [
 
 const DATE_STRING_FORMAT = "YYYY-MM-DD";
 
-export default {YEARS, MONTHS, DATE_STRING_FORMAT};
+const REGEX_NUMBER = /^\d{1,10}$|(?=^.{1,10}$)^\d+\.\d{0,2}$/;
+
+export default {YEARS, MONTHS, DATE_STRING_FORMAT, REGEX_NUMBER};

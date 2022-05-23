@@ -309,7 +309,7 @@ function App() {
         x.add(1, 'days')
       ) {
         const dateString = x.format(Constants.DATE_STRING_FORMAT);
-        if (notebookDates.indexOf(dateString) != -1 && headerDates.indexOf(dateString) === -1) {
+        if (notebookDates.indexOf(dateString) !== -1 && headerDates.indexOf(dateString) === -1) {
           headerDates.push(dateString);
         } else {
           setState({

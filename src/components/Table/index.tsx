@@ -2,7 +2,7 @@ import React from 'react';
 import DatePicker from "react-datepicker";
 import moment from "moment";
 
-import {Constants}  from "../../utils/index";
+import {Constants, Functions} from "../../utils/index";
 import {TableFooter, TableHeaderWeeklyGoal, TableRow} from "../../interfaces/index";
 
 import "react-datepicker/dist/react-datepicker.css";
@@ -27,16 +27,16 @@ const Table = (props: TableProps) => {
   }
 
   const handleOnChangeGoal = (goal: string, storeId: string, event: any) => {
-    const reg = /^\d+$/;
-    const value = event.target.value;
+    const reg = Constants.REGEX_NUMBER;
+    const value = event.target.value.replace(',', '');
     if (reg.test(value) || value === "") {
       props.handleChangeGoal(goal, storeId, +value);
     }
   }
 
   const handleOnChangeWeeklyGoal = (alias: string, storeId: string, event: any) => {
-    const reg = /^\d+$/;
-    const value = event.target.value;
+    const reg = Constants.REGEX_NUMBER;
+    const value = event.target.value.replace(',', '');
     if (reg.test(value) || value === "") {
       props.handleChangeWeeklyGoals(alias, storeId, +value);
     }
@@ -82,7 +82,7 @@ const Table = (props: TableProps) => {
                     className={`calendar-input ${range.error ? 'column-error' : ''}`}
                   />
                   <br/>
-                  <a onClick={(event) => handleOnDeleteColumn(range.alias, event)}>Elminar -</a>
+                  <a onClick={(event) => handleOnDeleteColumn(range.alias, event)}>Eliminar -</a>
                 </th>
               );
             })
@@ -94,12 +94,12 @@ const Table = (props: TableProps) => {
         <tr>
           <th className={styles.tableColFrozen}>Totales</th>
           {/*<th>-</th>*/}
-          <th>{props.footer.goalOne}</th>
-          <th>{props.footer.goalTwo}</th>
+          <th>{Functions.numberWithThousandsSeparator(props.footer.goalOne)}</th>
+          <th>{Functions.numberWithThousandsSeparator(props.footer.goalTwo)}</th>
           {
             props.footer.weeklyGoals.map((goal) => {
               return <th key={goal.alias}>
-                {goal.value}
+                {Functions.numberWithThousandsSeparator(goal.value)}
                 {/*<p>{goal.alias}</p>*/}
               </th>;
             })
@@ -117,7 +117,7 @@ const Table = (props: TableProps) => {
                   <input
                     disabled={props.isLoadingSubmit}
                     type="text"
-                    value={row.goalOne}
+                    value={Functions.numberWithThousandsSeparator(row.goalOne)}
                     onChange={(event) => handleOnChangeGoal("one", row.storeId, event)}
                   />
                 </td>
@@ -125,7 +125,7 @@ const Table = (props: TableProps) => {
                   <input
                     disabled={props.isLoadingSubmit}
                     type="text"
-                    value={row.goalTwo}
+                    value={Functions.numberWithThousandsSeparator(row.goalTwo)}
                     onChange={(event) => handleOnChangeGoal("two", row.storeId, event)}
                   />
                 </td>
@@ -137,7 +137,7 @@ const Table = (props: TableProps) => {
                           className={row.error ? styles.rowError : ''}
                           disabled={props.isLoadingSubmit}
                           type="text"
-                          value={weeklyGoal.value}
+                          value={Functions.numberWithThousandsSeparator(weeklyGoal.value)}
                           onChange={(event) => handleOnChangeWeeklyGoal(weeklyGoal.alias, row.storeId, event)}
                         />
                         {/*<p>{weeklyGoal.alias}</p>*/}
