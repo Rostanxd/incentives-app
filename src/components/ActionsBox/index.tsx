@@ -12,6 +12,7 @@ type ActionBoxProps = {
   handleChangeYearOrMonth: any,
   handleSearch: any,
   handleSubmit: any,
+  handlePercentagesModal: any,
   isLoadingSearch: boolean,
   isLoadingSubmit: boolean,
 }
@@ -20,6 +21,11 @@ const ActionsBox = (props: ActionBoxProps) => {
   const handleOnClick = (event: MouseEvent<HTMLElement>) => {
     event.preventDefault();
     props.handleSubmit();
+  }
+
+  const handlePercentagesModal = (event: MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    props.handlePercentagesModal();
   }
 
   return (
@@ -39,6 +45,13 @@ const ActionsBox = (props: ActionBoxProps) => {
         style={{fontSize: '1em'}}
       >
         Guardar
+      </button>
+      <button
+        className="button is-info"
+        onClick={handlePercentagesModal}
+        style={{fontSize: '1em'}}
+      >
+        Recalcular %
       </button>
     </div>
   );

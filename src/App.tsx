@@ -17,7 +17,9 @@ import {
 import 'bulma/css/bulma.css';
 
 import {Functions} from "./utils/index";
-import Modal from "./components/Modal";
+import ModalMessages from "./components/ModalMessages";
+import ModalPercentages from "./components/ModalPercentages";
+import WeeklyPercentageGoal from "./interfaces/WeeklyPercentageGoal";
 
 interface AppState {
   year: number,
@@ -30,7 +32,7 @@ interface AppState {
   isLoadingSubmit: boolean,
   error: boolean,
   message: string,
-  modal: {
+  modalMessages: {
     title: string,
     text: string,
     isOpen: boolean,
@@ -41,6 +43,9 @@ interface AppState {
     cancelButtonDisplayed?: boolean,
     cancelButtonText?: string,
     cancelButtonClassNames?: string
+  },
+  modalPercentages: {
+    isOpen: boolean
   }
 }
 
@@ -59,12 +64,15 @@ const APP_INITIAL_STATE: AppState = {
   isLoadingSubmit: false,
   error: false,
   message: "",
-  modal: {
+  modalMessages: {
     title: "",
     text: "",
     isOpen: false,
     okButtonDisplayed: true,
     cancelButtonDisplayed: true,
+  },
+  modalPercentages: {
+    isOpen: false
   }
 }
 
@@ -410,7 +418,7 @@ function App() {
           isLoadingSubmit: false,
           error: false,
           message: "",
-          modal: {
+          modalMessages: {
             isOpen: true,
             title: "Actualizar Libreta",
             text: "Se ha actualizado la libreta",
@@ -418,8 +426,8 @@ function App() {
             okButtonCallback: () => {
               setState(prevState => ({
                 ...prevState,
-                modal: {
-                  ...prevState.modal,
+                modalMessages: {
+                  ...prevState.modalMessages,
                   isOpen: false
                 }
               }));
@@ -437,6 +445,15 @@ function App() {
           message: "Error inesperado",
         });
       });
+  }
+
+  const handlePercentagesModal = () => {
+    setState({
+      ...state,
+      modalPercentages: {
+        isOpen: true
+      }
+    });
   }
 
   const handleChangeYearOrMonth = (event: any) => {
@@ -601,7 +618,7 @@ function App() {
   const handleDeleteWeekDates = (alias: string) => {
     setState({
       ...state,
-      modal: {
+      modalMessages: {
         isOpen: true,
         title: "Eliminar Semana",
         text: `Está seguro de eliminar la semana "${alias}"`,
@@ -616,8 +633,12 @@ function App() {
   const handleOnCloseModal = () => {
     setState({
       ...state,
-      modal: {
-        ...state.modal,
+      modalMessages: {
+        ...state.modalMessages,
+        isOpen: false,
+      },
+      modalPercentages: {
+        ...state.modalPercentages,
         isOpen: false,
       }
     })
@@ -645,11 +666,40 @@ function App() {
       tableHeadersWeeklyGoals: tableHeadersWeeklyGoals,
       tableRows: tableRows,
       tableFooter: tableFooter,
-      modal: {
-        ...prevState.modal,
+      modalMessages: {
+        ...prevState.modalMessages,
         isOpen: false
       }
     }));
+  }
+
+  const updateGoalsByPercentages = (weeklyPercentageGoals: Array<WeeklyPercentageGoal>) => {
+    const newTableRows = [...state.tableRows];
+    for (let i = 0; i < weeklyPercentageGoals.length; i++) {
+      const weeklyPercentageGoal = weeklyPercentageGoals[i];
+
+      for (let x = 0; x < newTableRows.length; x++) {
+        const row = newTableRows[x];
+        for (let y = 0; y < row.weeklyGoals.length; y++) {
+          const weeklyGoal = row.weeklyGoals[y];
+          if (
+            weeklyGoal.alias === weeklyPercentageGoal.weekAlias &&
+            weeklyPercentageGoal.percentage > 0
+          ) {
+            weeklyGoal.value = row.goalOne * (weeklyPercentageGoal.percentage / 100);
+            break;
+          }
+        }
+      }
+    }
+
+    setState({
+      ...state,
+      tableRows: newTableRows,
+      modalPercentages: {
+        isOpen: false,
+      }
+    })
   }
 
   return (
@@ -663,6 +713,7 @@ function App() {
           handleChangeYearOrMonth={handleChangeYearOrMonth}
           handleSearch={handleSearch}
           handleSubmit={handleSubmit}
+          handlePercentagesModal={handlePercentagesModal}
           isLoadingSearch={state.isLoadingSearch}
           isLoadingSubmit={state.isLoadingSubmit}
         />
@@ -684,14 +735,20 @@ function App() {
           />
         }
       </div>
-      <Modal
-        title={state.modal.title}
-        text={state.modal.text}
-        isOpen={state.modal.isOpen}
-        okButtonClassNames={state.modal.okButtonClassNames}
-        okButtonDisplayed={state.modal.okButtonDisplayed}
-        okButtonCallback={state.modal.okButtonCallback}
-        cancelButtonDisplayed={state.modal.cancelButtonDisplayed}
+      <ModalMessages
+        title={state.modalMessages.title}
+        text={state.modalMessages.text}
+        isOpen={state.modalMessages.isOpen}
+        okButtonClassNames={state.modalMessages.okButtonClassNames}
+        okButtonDisplayed={state.modalMessages.okButtonDisplayed}
+        okButtonCallback={state.modalMessages.okButtonCallback}
+        cancelButtonDisplayed={state.modalMessages.cancelButtonDisplayed}
+        handleOnCloseModal={handleOnCloseModal}
+      />
+      <ModalPercentages
+        isOpen={state.modalPercentages.isOpen}
+        weeklyGoals={state.tableHeadersWeeklyGoals}
+        okButtonCallback={updateGoalsByPercentages}
         handleOnCloseModal={handleOnCloseModal}
       />
     </>

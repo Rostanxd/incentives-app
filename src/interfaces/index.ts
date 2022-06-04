@@ -7,3 +7,4 @@ export {default as SdtLibretaMetasLocalesSemana} from './SdtLibretaMetasLocalesS
 export {default as SdtLibretaMetasLocal} from './SdtLibretaMetasLocal';
 export {default as SdtLibretaMetas} from './SdtLibretaMetas';
 export {default as LibretasMetasData} from './LibretasMetasData';
+export {default as WeeklyPercentageGoal} from './WeeklyPercentageGoal';

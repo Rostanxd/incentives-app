@@ -27,6 +27,17 @@ td > input {
   font-weight: bold;
 }
 
+.thWeeksContainer {
+  display: flex;
+}
+
+.thDates {
+
+}
+
+.thButton {
+  margin-left: 0.5rem;
+}
 
 /* Breakpoints */
 @media (max-width: 480px) {

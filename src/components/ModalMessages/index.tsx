@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 
-type ModalProps = {
+type ModalMessagesProps = {
   title: string,
   text: string,
   isOpen: boolean,
@@ -14,16 +14,16 @@ type ModalProps = {
   handleOnCloseModal?: any,
 }
 
-interface ModalState {
+interface ModalMessagesState {
   isOpen: false,
 }
 
-const MODAL_INITIAL_STATE: ModalState = {
+const INITIAL_STATE: ModalMessagesState = {
   isOpen: false,
 }
 
-const Modal = (props: ModalProps) => {
-  const [state, setState] = useState({...MODAL_INITIAL_STATE, ...{isOpen: props.isOpen}});
+const ModalMessages = (props: ModalMessagesProps) => {
+  const [state, setState] = useState({...INITIAL_STATE, ...{isOpen: props.isOpen}});
 
   const handleOnClickOkButton = (event: any) => {
     event.preventDefault();
@@ -90,4 +90,4 @@ const Modal = (props: ModalProps) => {
   );
 }
 
-export default Modal;
+export default ModalMessages;
